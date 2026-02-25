@@ -98,7 +98,6 @@ func (s *ProfileService) GenerateProfile(ctx context.Context, req *models.Conten
 	return response, nil
 }
 
-// DeployProfile deploys the profile markdown to GitHub.
 func (s *ProfileService) DeployProfile(ctx context.Context, accessToken, username, markdown string) error {
 	if err := s.githubService.DeployProfileREADME(ctx, accessToken, username, markdown); err != nil {
 		return fmt.Errorf("failed to deploy profile: %w", err)
@@ -106,7 +105,6 @@ func (s *ProfileService) DeployProfile(ctx context.Context, accessToken, usernam
 	return nil
 }
 
-// Badge generation
 
 // buildBadgesFromProjectData creates badges sourced from (in priority order):
 //  1. EmphasizedSkills from the request
@@ -168,7 +166,6 @@ func (s *ProfileService) buildBadgesFromProjectData(
 }
 
 // buildBadgeCatalog returns a comprehensive technology → Badge map (all keys lowercase).
-// Only Name and Color are needed; the URL is constructed dynamically when rendering.
 func buildBadgeCatalog() map[string]models.Badge {
 	entries := []models.Badge{
 		// ---------- Languages ----------
@@ -350,7 +347,6 @@ func toLogoSlug(name string) string {
 	return s
 }
 
-// Helpers – aggregate project data
 
 // collectTopLanguages sums bytes per language across all repos, returns top-n names.
 func collectTopLanguages(projects []models.RepositoryAnalysis, n int) []string {
@@ -438,7 +434,6 @@ func buildTypingLines(config *models.ProfileConfig, topLangs, topics []string) [
 	return lines
 }
 
-// Markdown builder
 
 // buildMarkdown assembles the README from all pipeline data — no hardcoded content.
 func (s *ProfileService) buildMarkdown(
@@ -711,7 +706,6 @@ func (s *ProfileService) buildMarkdown(
 	return md.String()
 }
 
-// Badge categorisation
 
 // organizeBadgesByCategory sorts badges into four display groups.
 func (s *ProfileService) organizeBadgesByCategory(badges []models.Badge) map[string][]models.Badge {

@@ -30,7 +30,6 @@ func NewGitHubService(
 	}
 }
 
-// ListUserRepositories fetches all repositories for a user with caching
 func (s *GitHubService) ListUserRepositories(ctx context.Context, userID int64, accessToken string, includePrivate bool) ([]*models.Repository, error) {
 	cachedRepos, err := s.repoCacheRepo.GetRepositoryList(ctx, userID, includePrivate)
 	if err == nil && cachedRepos != nil {
@@ -78,7 +77,6 @@ func (s *GitHubService) ListUserRepositories(ctx context.Context, userID int64, 
 	return repos, nil
 }
 
-// AnalyzeRepository performs deep analysis on a repository
 func (s *GitHubService) AnalyzeRepository(ctx context.Context, accessToken, owner, repo string) (*models.RepositoryAnalysis, error) {
 	repoInfo, err := s.githubClient.GetRepository(ctx, accessToken, owner, repo)
 	if err != nil {
@@ -105,7 +103,6 @@ func (s *GitHubService) AnalyzeRepository(ctx context.Context, accessToken, owne
 	return analysis, nil
 }
 
-// GetRepository fetches a single repository details
 func (s *GitHubService) GetRepository(ctx context.Context, accessToken, owner, repo string) (*models.Repository, error) {
 	gr, err := s.githubClient.GetRepository(ctx, accessToken, owner, repo)
 	if err != nil {
@@ -136,7 +133,6 @@ func (s *GitHubService) GetRepository(ctx context.Context, accessToken, owner, r
 	return repository, nil
 }
 
-// DeployProfileREADME creates or updates the profile README on GitHub
 func (s *GitHubService) DeployProfileREADME(ctx context.Context, accessToken, username, content string) error {
 	currentSHA := ""
 	sha, err := s.githubClient.GetProfileReadmeSHA(ctx, accessToken, username)
@@ -156,7 +152,6 @@ func (s *GitHubService) DeployProfileREADME(ctx context.Context, accessToken, us
 	return nil
 }
 
-// ClearUserCache removes all cached data for a user
 func (s *GitHubService) ClearUserCache(ctx context.Context, userID int64) error {
 	if err := s.repoCacheRepo.InvalidateAllRepositoryLists(ctx, userID); err != nil {
 		slog.Warn("Failed to invalidate repository list cache", "userID", userID, "error", err)
@@ -164,7 +159,6 @@ func (s *GitHubService) ClearUserCache(ctx context.Context, userID int64) error 
 	return nil
 }
 
-// ValidateRepositoryAccess checks if user has access to a repository
 func (s *GitHubService) ValidateRepositoryAccess(ctx context.Context, accessToken, owner, repo string) error {
 	_, err := s.githubClient.GetRepository(ctx, accessToken, owner, repo)
 	if err != nil {

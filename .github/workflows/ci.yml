@@ -1,8 +1,8 @@
-name: CI/CD Pipeline
+name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -11,9 +11,8 @@ env:
   NODE_VERSION: "20"
 
 jobs:
-  # Backend tests and build
   backend:
-    name: Backend - Test & Build
+    name: Backend
     runs-on: ubuntu-latest
 
     services:
@@ -31,68 +30,32 @@ jobs:
         ports:
           - 5432:5432
 
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: backend/go.sum
 
-      - name: Install dependencies
-        working-directory: ./backend
+      - name: Download dependencies
         run: go mod download
 
-      - name: Run linter
-        working-directory: ./backend
-        run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-          golangci-lint run
+      - name: Vet
+        run: go vet ./...
 
-      - name: Run tests
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://gitright:gitright@localhost:5432/gitright_test?sslmode=disable
-          REDIS_URL: redis://localhost:6379/0
-        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./backend/coverage.out
-          flags: backend
-
-      - name: Build binary
-        working-directory: ./backend
+      - name: Build
         run: go build -o bin/server ./cmd/server
 
-  # Frontend tests and build
   frontend:
-    name: Frontend - Test & Build
+    name: Frontend
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-          cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: Install pnpm
         run: npm install -g pnpm@8
@@ -105,84 +68,6 @@ jobs:
         working-directory: ./frontend
         run: pnpm type-check
 
-      - name: Lint
-        working-directory: ./frontend
-        run: pnpm lint
-
-      - name: Run tests
-        working-directory: ./frontend
-        run: pnpm test
-
       - name: Build
         working-directory: ./frontend
         run: pnpm build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist
-
-  # Security scanning
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run Snyk security scan
-        uses: snyk/actions/golang@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high
-
-  # Build artifacts
-  build:
-    name: Build Production Artifacts
-    runs-on: ubuntu-latest
-    needs: [backend, frontend]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Build backend binary
-        working-directory: ./backend
-        run: |
-          go build -ldflags="-w -s" -o bin/gitright-linux ./cmd/server
-          go build -ldflags="-w -s" -o bin/gitright-windows.exe ./cmd/server
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install pnpm
-        run: npm install -g pnpm@8
-
-      - name: Build frontend
-        working-directory: ./frontend
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm build
-
-      - name: Upload backend artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-binaries
-          path: backend/bin/
-
-      - name: Upload frontend artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist/

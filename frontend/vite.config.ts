@@ -5,8 +5,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
@@ -23,8 +22,7 @@ export default defineConfig(({ mode }) => ({
     port: 3000,
     proxy: {
       "/api": {
-        // In development, proxy API calls to backend
-        target: "http://localhost:5173",
+        target: "http://localhost:8080",
         changeOrigin: true,
       },
     },
@@ -35,11 +33,7 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           "react-vendor": ["react", "react-dom", "react-router-dom"],
           "ui-vendor": ["framer-motion", "lucide-react"],
-          "markdown-vendor": [
-            "react-markdown",
-            "remark-gfm",
-            "rehype-highlight",
-          ],
+          "markdown-vendor": ["react-markdown", "remark-gfm", "rehype-highlight"],
         },
       },
     },
@@ -50,4 +44,4 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     include: ["react", "react-dom", "react-router-dom"],
   },
-}));
+});

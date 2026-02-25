@@ -22,8 +22,8 @@ vendor/
 node_modules/
 
 # Build directories
-backend/bin/
-backend/dist/
+bin/
+
 frontend/dist/
 frontend/build/
 
