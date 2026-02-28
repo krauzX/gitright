@@ -16,13 +16,13 @@ services:
       - key: HTTP_TIMEOUT
         value: 300s
       - key: FRONTEND_URL
-        sync: false
+        value: https://gitright.vercel.app
       - key: GITHUB_CLIENT_ID
         sync: false
       - key: GITHUB_CLIENT_SECRET
         sync: false
       - key: GITHUB_REDIRECT_URI
-        sync: false
+        value: https://gitright.vercel.app/auth/callback
       - key: GITHUB_OAUTH_SCOPES
         value: repo,user:email
       - key: DATABASE_URL
@@ -40,7 +40,7 @@ services:
       - key: TOKEN_ENCRYPTION_KEY
         sync: false
       - key: CORS_ALLOWED_ORIGINS
-        sync: false
+        value: https://gitright.vercel.app
       - key: CORS_ALLOWED_METHODS
         value: GET,POST,PUT,DELETE,OPTIONS
       - key: CORS_ALLOWED_HEADERS
@@ -49,8 +49,12 @@ services:
         value: 60
       - key: RATE_LIMIT_BURST
         value: 10
+      - key: GOOGLE_AI_API_KEY
+        sync: false
       - key: GOOGLE_AI_MODEL
-        value: gemini-2.5-flash-preview-0409-2025
+        value: gemini-2.5-flash
+      - key: GOOGLE_AI_USE_GROUNDING
+        value: "true"
       - key: GOOGLE_AI_TIMEOUT
         value: 300s
       - key: GOOGLE_AI_MAX_RETRIES
