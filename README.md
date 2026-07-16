@@ -1,239 +1,155 @@
-# GitRight: The Custom GitHub Profile Engine
+<div align="center">
 
-[![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://go.dev/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react)](https://react.dev/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![GitRight](https://raw.githubusercontent.com/krauzX/gitright/main/banner.svg)
 
-## 🎯 Core Vision
+# GitRight
 
-GitRight is an intelligent GitHub profile README generator that analyzes your repositories using advanced LLM technology to create dynamically tailored, contextually relevant profiles optimized for potential employers and collaborators.
+**AI-powered GitHub profile README generator**
 
-### Key Value Pillars
+[![Go](https://img.shields.io/badge/Go-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev)
+[![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![License](https://img.shields.io/badge/License-MIT-000000?style=flat-square)](LICENSE)
 
-- **Intelligent Analysis**: Uses Gemini 2.5 Flash with Google Search grounding to analyze repository descriptions, file structures, and code snippets
-- **Contextual Tailoring**: Customizes content based on your target role and career goals
-- **Seamless Integration**: Handles OAuth authentication and direct deployment to GitHub
-- **Private Repository Support**: Securely analyzes private repositories for comprehensive portfolio generation
+Analyze your repositories, extract your skills, and generate a professional README — all in one click.
 
-## 🏗️ Architecture
+[Get Started](#getting-started) · [Features](#features) · [Self-Host](#self-host)
 
-### Technology Stack (2025 Standards)
-
-**Backend**
-
-- Go 1.22+ with Echo framework for high-performance APIs
-- Structured logging with slog
-- Rate limiting and circuit breakers
-- PostgreSQL for caching, sessions, and data persistence
-
-**Frontend**
-
-- React 19 with Server Components
-- Vite 5 for optimal build performance
-- Zustand for state management
-- TailwindCSS 4.0 for styling
-- Playwright for E2E testing
-
-**Infrastructure**
-
-- GitHub Actions for CI/CD
-- Netlify Functions for serverless deployment
-- PostgreSQL (Neon) for all data storage and caching
-
-**AI Integration**
-
-- Google Gemini 2.5 Flash Preview (09-2025)
-- Google Search grounding for enhanced context
-- Structured prompt engineering for consistent output
-
-## 🚀 Features
-
-### 1. Source Analysis & Project Selection
-
-- Visual project selector with drag-and-drop prioritization
-- Private repository toggle with granular permissions
-- Project focus filters (Best Performance, Team Project, Personal Favorite)
-
-### 2. Contextual Persona Customization
-
-- Target Role/Persona definition
-- Skills emphasis configuration
-- Tone of voice selection (Professional, Friendly, Technical)
-- Contact preference customization
-
-### 3. Advanced Template System
-
-- **Technical Deep Dive**: Architecture diagrams and technical challenges
-- **Hiring Manager Scan**: Impact metrics and skill badges
-- **Community Contributor**: Open-source contributions and community involvement
-
-### 4. Content Generation Engine
-
-- Project summarization with role-specific vocabulary
-- Automatic skills extraction from dependencies and codebase
-- Personalized profile pitch generation
-- Technology badge suggestions
-
-### 5. Deployment & Iteration
-
-- Real-time Markdown preview
-- Direct push to GitHub profile repository
-- Version history and rollback support
-
-## 📁 Project Structure
-
-```
-gitright/
-├── backend/
-│   ├── cmd/
-│   │   └── server/
-│   │       └── main.go
-│   ├── internal/
-│   │   ├── api/
-│   │   │   ├── handlers/
-│   │   │   ├── middleware/
-│   │   │   └── routes/
-│   │   ├── config/
-│   │   ├── github/
-│   │   │   ├── auth.go
-│   │   │   ├── client.go
-│   │   │   └── analyzer.go
-│   │   ├── llm/
-│   │   │   ├── gemini.go
-│   │   │   ├── prompts.go
-│   │   │   ├── content_generator.go
-│   │   │   └── batch_generator.go
-│   │   ├── models/
-│   │   ├── repository/
-│   │   ├── services/
-│   │   └── templates/
-│   ├── pkg/
-│   │   ├── logger/
-│   │   ├── validator/
-│   │   └── errors/
-│   └── tests/
-├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   ├── lib/
-│   │   ├── store/
-│   │   └── types/
-│   ├── public/
-
-
-```
-
-## 🔑 **NEW: Bring Your Own API Key**
-
-GitRight now uses a **Bring Your Own API Key (BYOK)** model for enhanced security and cost control:
-
-- **Users provide their own Gemini API key** during profile generation
-- **No server-side API key storage** - your key is used only for your session
-- **Get your FREE API key**: [Google AI Studio](https://aistudio.google.com/app/apikey)
-- **Rate Limit Friendly**: Single batched API call instead of 10+ sequential calls
-- **Privacy First**: Your API key never leaves your browser or is stored on our servers
-
-## 🔐 Security
-
-- OAuth 2.1 with PKCE flow
-- Encrypted token storage with rotation policies
-- Content Security Policy (CSP) headers
-- Rate limiting per IP and per user
-- Input validation and sanitization
-- Automated vulnerability scanning (Snyk, Dependabot)
-- OWASP Top 10 (2025) compliance
-
-## 🚦 Getting Started
-
-### Prerequisites
-
-- Go 1.22+
-- Node.js 20+
-- PostgreSQL 16+ (or use Neon serverless PostgreSQL)
-- GitHub OAuth App credentials
-- **Google Gemini API key** (get yours FREE: [Google AI Studio](https://aistudio.google.com/app/apikey))
-  - **Note**: Users provide their own API keys during profile generation
-  - Server-side API key is optional for admin/testing purposes only
-
-### Installation
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/yourusername/gitright.git
-cd gitright
-```
-
-2. Set up environment variables:
-
-```bash
-cp .env.example .env
-# Edit .env with your credentials
-```
-
-3. Start PostgreSQL (if running locally):
-
-```powershell
-# Start PostgreSQL service
-Start-Service postgresql-x64-16
-
-# Or use Neon serverless PostgreSQL (recommended)
-# Sign up at https://neon.tech and get your DATABASE_URL
-```
-
-4. Run database migrations:
-
-```bash
-go run scripts/apply_migration.go
-```
-
-5. Run backend:
-
-```bash
-go mod download
-go run cmd/server/main.go
-```
-
-6. Run frontend:
-
-```bash
-cd frontend
-pnpm install
-pnpm dev
-```
-
-## 📊 Performance Targets
-
-- Initial load: < 2s (LCP)
-- API response time: < 200ms (p95)
-- LLM generation: < 5s per project summary
-- Core Web Vitals: All green
-- Lighthouse score: > 95
-
-## 🧪 Testing
-
-```bash
-# Backend tests
-cd backend
-go test ./... -v -race -coverprofile=coverage.out
-
-# Frontend tests
-cd frontend
-pnpm test
-pnpm test:e2e
-```
-
-## 📈 Roadmap
-
-- [ ] Multi-platform support (GitLab, Bitbucket)
-- [ ] Analytics dashboard for profile views and engagement
-
-## 📧 Contact
-
-For questions or support, open an issue or contact the maintainers (that would be me).
+</div>
 
 ---
 
-Built with ❤️ using cutting-edge 2025 web technologies
+## What It Does
+
+GitRight connects to your GitHub account, analyzes your repositories for languages, frameworks, and contribution patterns, then uses Gemini to write a compelling profile README tailored to your target role.
+
+**No templates. No generic copy. Just your actual work, presented well.**
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| **Deep Code Analysis** | Scans repos for languages, dependencies, commit history, and contributor data |
+| **AI Profile Generation** | Gemini writes a personalized README based on your real projects |
+| **One-Click Deploy** | Pushes the generated README directly to your GitHub profile repo |
+| **Live Preview** | See your profile render in real-time before deploying |
+| **SVG Banner Generator** | Premium animated hero banners with glassmorphism and typing effects |
+| **Contribution Graphs** | SVG contribution activity visualizations |
+| **Telemetry Graphs** | Developer skill network visualization |
+| **BYOK** | Your Gemini API key stays in your browser — never stored on our servers |
+
+## Architecture
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   React 19  │────▶│  Go / Echo  │────▶│  PostgreSQL  │
+│   Vite 8    │     │  GraphQL    │     │  Neon/Local  │
+│   Zustand   │     │  Gemini API │     └─────────────┘
+└─────────────┘     └─────────────┘
+```
+
+**Backend:** Go 1.24 · Echo v4 · PostgreSQL · GitHub GraphQL API · Gemini 2.0 Flash  
+**Frontend:** React 19 · Vite 8 · Tailwind CSS 4 · Zustand 5 · Framer Motion
+
+## Getting Started
+
+### Prerequisites
+
+- Go 1.24+
+- Node.js 20+ with pnpm
+- PostgreSQL (or Neon free tier)
+- [GitHub OAuth App](https://github.com/settings/developers)
+- [Gemini API key](https://aistudio.google.com/app/apikey) (free)
+
+### Quick Start
+
+```bash
+git clone https://github.com/krauzX/gitright.git
+cd gitright
+cp .env.example .env
+```
+
+Edit `.env` with your credentials:
+
+```env
+GITHUB_CLIENT_ID=your_client_id
+GITHUB_CLIENT_SECRET=your_client_secret
+DATABASE_URL=postgresql://user:pass@localhost:5432/gitright
+SESSION_SECRET=any_random_string
+TOKEN_ENCRYPTION_KEY=exactly_32_characters_long!!
+```
+
+```bash
+# Run migrations
+go run cmd/migrate/main.go
+
+# Start backend (port 8080)
+go run cmd/server/main.go
+
+# Start frontend (port 3000)
+cd frontend && pnpm install && pnpm dev
+```
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/auth/login` | Initiate GitHub OAuth |
+| `GET` | `/api/v1/auth/callback` | OAuth callback |
+| `GET` | `/api/v1/github/repositories` | List user repositories |
+| `POST` | `/api/v1/github/repositories/batch-analyze` | Batch analyze repositories |
+| `POST` | `/api/v1/profile/auto-import` | Extract skills and socials from GitHub |
+| `POST` | `/api/v1/profile/generate` | Generate README with Gemini |
+| `POST` | `/api/v1/profile/deploy` | Deploy README to GitHub |
+| `GET` | `/api/v1/profile/banner` | Generate SVG profile banner |
+| `GET` | `/api/v1/graph/telemetry` | Generate telemetry graph SVG |
+| `GET` | `/api/v1/graph/contributions` | Generate contribution graph SVG |
+
+## Self-Host
+
+### Docker
+
+```bash
+docker compose up -d
+```
+
+### Render (Free)
+
+1. Fork this repo
+2. Create a Render Web Service (Go)
+3. Create a Neon PostgreSQL database
+4. Set environment variables in Render dashboard
+5. Deploy
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GITHUB_CLIENT_ID` | Yes | GitHub OAuth App client ID |
+| `GITHUB_CLIENT_SECRET` | Yes | GitHub OAuth App client secret |
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `SESSION_SECRET` | Yes | Random string for session signing |
+| `TOKEN_ENCRYPTION_KEY` | Yes | Exactly 32 characters for AES-256 |
+| `GOOGLE_AI_API_KEY` | No | Default Gemini key (users can BYOK) |
+| `PORT` | No | Server port (default: 8080) |
+| `LOG_LEVEL` | No | Log level (default: info) |
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run `go build ./...` and `cd frontend && pnpm build`
+5. Submit a pull request
+
+## License
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+Built by [krauzX](https://github.com/krauzX)
+
+</div>

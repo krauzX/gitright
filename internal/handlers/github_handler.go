@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/krauzx/gitright/internal/models"
 	"github.com/krauzx/gitright/internal/services"
 	"github.com/labstack/echo/v4"
 )
@@ -18,19 +19,14 @@ func NewGitHubHandler(githubService *services.GitHubService) *GitHubHandler {
 func (h *GitHubHandler) ListRepositories(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	userID, ok := c.Get("user_id").(int64)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
-	}
-
-	accessToken, ok := c.Get("access_token").(string)
-	if !ok {
+	user, ok := c.Get("user").(*models.User)
+	if !ok || user == nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
 	includePrivate := c.QueryParam("include_private") == "true"
 
-	repos, err := h.githubService.ListUserRepositories(ctx, userID, accessToken, includePrivate)
+	repos, err := h.githubService.ListUserRepositories(ctx, user.ID, user.AccessToken, includePrivate)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch repositories")
 	}
@@ -41,57 +37,11 @@ func (h *GitHubHandler) ListRepositories(c echo.Context) error {
 	})
 }
 
-func (h *GitHubHandler) GetRepository(c echo.Context) error {
-	ctx := c.Request().Context()
-
-	accessToken, ok := c.Get("access_token").(string)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
-	}
-
-	owner := c.Param("owner")
-	repo := c.Param("repo")
-
-	if owner == "" || repo == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Owner and repo are required")
-	}
-
-	repository, err := h.githubService.GetRepository(ctx, accessToken, owner, repo)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "Repository not found")
-	}
-
-	return c.JSON(http.StatusOK, repository)
-}
-
-func (h *GitHubHandler) AnalyzeRepository(c echo.Context) error {
-	ctx := c.Request().Context()
-
-	accessToken, ok := c.Get("access_token").(string)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
-	}
-
-	owner := c.Param("owner")
-	repo := c.Param("repo")
-
-	if owner == "" || repo == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Owner and repo are required")
-	}
-
-	analysis, err := h.githubService.AnalyzeRepository(ctx, accessToken, owner, repo)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to analyze repository")
-	}
-
-	return c.JSON(http.StatusOK, analysis)
-}
-
 func (h *GitHubHandler) BatchAnalyze(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	accessToken, ok := c.Get("access_token").(string)
-	if !ok {
+	user, ok := c.Get("user").(*models.User)
+	if !ok || user == nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
@@ -111,7 +61,7 @@ func (h *GitHubHandler) BatchAnalyze(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Maximum 10 repositories allowed")
 	}
 
-	results, err := h.githubService.BatchAnalyzeRepositories(ctx, accessToken, req.Repositories)
+	results, err := h.githubService.BatchAnalyzeRepositories(ctx, user.AccessToken, req.Repositories)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to analyze repositories")
 	}
@@ -124,12 +74,12 @@ func (h *GitHubHandler) BatchAnalyze(c echo.Context) error {
 func (h *GitHubHandler) ClearCache(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	userID, ok := c.Get("user_id").(int64)
-	if !ok {
+	user, ok := c.Get("user").(*models.User)
+	if !ok || user == nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
-	if err := h.githubService.ClearUserCache(ctx, userID); err != nil {
+	if err := h.githubService.ClearUserCache(ctx, user.ID); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to clear cache")
 	}
 

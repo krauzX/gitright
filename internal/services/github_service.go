@@ -30,7 +30,6 @@ func NewGitHubService(
 	}
 }
 
-// ListUserRepositories fetches all repositories for a user with caching
 func (s *GitHubService) ListUserRepositories(ctx context.Context, userID int64, accessToken string, includePrivate bool) ([]*models.Repository, error) {
 	cachedRepos, err := s.repoCacheRepo.GetRepositoryList(ctx, userID, includePrivate)
 	if err == nil && cachedRepos != nil {
@@ -78,7 +77,6 @@ func (s *GitHubService) ListUserRepositories(ctx context.Context, userID int64, 
 	return repos, nil
 }
 
-// AnalyzeRepository performs deep analysis on a repository
 func (s *GitHubService) AnalyzeRepository(ctx context.Context, accessToken, owner, repo string) (*models.RepositoryAnalysis, error) {
 	repoInfo, err := s.githubClient.GetRepository(ctx, accessToken, owner, repo)
 	if err != nil {
@@ -88,8 +86,30 @@ func (s *GitHubService) AnalyzeRepository(ctx context.Context, accessToken, owne
 	githubID := repoInfo.GetID()
 	fullName := fmt.Sprintf("%s/%s", owner, repo)
 
+	repository := &models.Repository{
+		ID:              repoInfo.GetID(),
+		GitHubID:        repoInfo.GetID(),
+		Name:            repoInfo.GetName(),
+		FullName:        repoInfo.GetFullName(),
+		Description:     repoInfo.GetDescription(),
+		Private:         repoInfo.GetPrivate(),
+		Fork:            repoInfo.GetFork(),
+		Language:        repoInfo.GetLanguage(),
+		StargazersCount: repoInfo.GetStargazersCount(),
+		ForksCount:      repoInfo.GetForksCount(),
+		OpenIssuesCount: repoInfo.GetOpenIssuesCount(),
+		DefaultBranch:   repoInfo.GetDefaultBranch(),
+		Topics:          repoInfo.Topics,
+		HTMLURL:         repoInfo.GetHTMLURL(),
+		CloneURL:        repoInfo.GetCloneURL(),
+		CreatedAt:       repoInfo.GetCreatedAt().Time,
+		UpdatedAt:       repoInfo.GetUpdatedAt().Time,
+		PushedAt:        repoInfo.GetPushedAt().Time,
+	}
+
 	cachedAnalysis, err := s.repoCacheRepo.GetRepositoryAnalysis(ctx, githubID)
 	if err == nil && cachedAnalysis != nil {
+		cachedAnalysis.Repository = repository
 		return cachedAnalysis, nil
 	}
 
@@ -105,7 +125,6 @@ func (s *GitHubService) AnalyzeRepository(ctx context.Context, accessToken, owne
 	return analysis, nil
 }
 
-// GetRepository fetches a single repository details
 func (s *GitHubService) GetRepository(ctx context.Context, accessToken, owner, repo string) (*models.Repository, error) {
 	gr, err := s.githubClient.GetRepository(ctx, accessToken, owner, repo)
 	if err != nil {
@@ -136,39 +155,26 @@ func (s *GitHubService) GetRepository(ctx context.Context, accessToken, owner, r
 	return repository, nil
 }
 
-// DeployProfileREADME creates or updates the profile README on GitHub
 func (s *GitHubService) DeployProfileREADME(ctx context.Context, accessToken, username, content string) error {
+	return s.DeployFile(ctx, accessToken, username, username, "README.md", "Update profile README via GitRight", content)
+}
+
+func (s *GitHubService) DeployFile(ctx context.Context, accessToken, owner, repo, path, message, content string) error {
 	currentSHA := ""
-	sha, err := s.githubClient.GetProfileReadmeSHA(ctx, accessToken, username)
+	sha, err := s.githubClient.GetProfileReadmeSHA(ctx, accessToken, owner)
 	if err == nil {
 		currentSHA = sha
 	}
 
-	message := "Update profile README via GitRight"
-	if currentSHA == "" {
-		message = "Create profile README via GitRight"
+	if err := s.githubClient.CreateOrUpdateFile(ctx, accessToken, owner, repo, path, message, content, currentSHA); err != nil {
+		return fmt.Errorf("failed to deploy file: %w", err)
 	}
-
-	if err := s.githubClient.CreateOrUpdateFile(ctx, accessToken, username, username, "README.md", message, content, currentSHA); err != nil {
-		return fmt.Errorf("failed to deploy README: %w", err)
-	}
-
 	return nil
 }
 
-// ClearUserCache removes all cached data for a user
 func (s *GitHubService) ClearUserCache(ctx context.Context, userID int64) error {
 	if err := s.repoCacheRepo.InvalidateAllRepositoryLists(ctx, userID); err != nil {
 		slog.Warn("Failed to invalidate repository list cache", "userID", userID, "error", err)
-	}
-	return nil
-}
-
-// ValidateRepositoryAccess checks if user has access to a repository
-func (s *GitHubService) ValidateRepositoryAccess(ctx context.Context, accessToken, owner, repo string) error {
-	_, err := s.githubClient.GetRepository(ctx, accessToken, owner, repo)
-	if err != nil {
-		return fmt.Errorf("access denied or repository not found: %w", err)
 	}
 	return nil
 }

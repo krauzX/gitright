@@ -1,0 +1,22 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  entrypoint = "cmd/server/main.go"
+  bin = "./tmp/server.exe"
+  cmd = "go build -o ./tmp/server.exe ./cmd/server"
+  delay = 1000
+  exclude_dir = ["tmp", "node_modules", "frontend", ".git", "migrations"]
+  exclude_regex = ["_test\\.go$"]
+  include_ext = ["go", "sql"]
+  kill_delay = "2s"
+  stop_on_error = true
+
+[color]
+  build = "yellow"
+  main = "magenta"
+  runner = "green"
+  watcher = "cyan"
+
+[misc]
+  clean_on_exit = true
