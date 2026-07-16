@@ -15,20 +15,17 @@ import (
 
 type ProfileService struct {
 	contentGenerator *llm.ContentGenerator
-	projectRepo      *repository.ProjectRepository
 	githubService    *GitHubService
 	profileCacheRepo *repository.ProfileCacheRepository
 }
 
 func NewProfileService(
 	contentGenerator *llm.ContentGenerator,
-	projectRepo *repository.ProjectRepository,
 	githubService *GitHubService,
 	profileCacheRepo *repository.ProfileCacheRepository,
 ) *ProfileService {
 	return &ProfileService{
 		contentGenerator: contentGenerator,
-		projectRepo:      projectRepo,
 		githubService:    githubService,
 		profileCacheRepo: profileCacheRepo,
 	}
@@ -83,7 +80,8 @@ func (s *ProfileService) GenerateProfile(ctx context.Context, req *models.Conten
 	}
 
 	badges := s.buildBadgesFromProjectData(req.Projects, batchResp.ExtractedSkills, req.EmphasizedSkills)
-	markdown := s.buildMarkdown(user, req, batchResp.ProfilePitch, summaries, badges, config)
+
+	markdown := s.buildMarkdown(user, req, batchResp.ProfilePitch, summaries, badges, config, false)
 
 	response := &models.ContentGenerationResponse{
 		Markdown:        markdown,
@@ -98,15 +96,19 @@ func (s *ProfileService) GenerateProfile(ctx context.Context, req *models.Conten
 	return response, nil
 }
 
-// DeployProfile deploys the profile markdown to GitHub.
-func (s *ProfileService) DeployProfile(ctx context.Context, accessToken, username, markdown string) error {
+func (s *ProfileService) DeployProfile(ctx context.Context, accessToken, username, markdown, bannerSVG string) error {
+	if bannerSVG != "" {
+		if err := s.githubService.DeployFile(ctx, accessToken, username, username, "banner.svg", "Update profile banner via GitRight", bannerSVG); err != nil {
+			slog.Warn("Failed to deploy banner SVG", "username", username, "error", err)
+		}
+	}
+
 	if err := s.githubService.DeployProfileREADME(ctx, accessToken, username, markdown); err != nil {
 		return fmt.Errorf("failed to deploy profile: %w", err)
 	}
 	return nil
 }
 
-// Badge generation
 
 // buildBadgesFromProjectData creates badges sourced from (in priority order):
 //  1. EmphasizedSkills from the request
@@ -128,19 +130,16 @@ func (s *ProfileService) buildBadgesFromProjectData(
 		}
 	}
 
-	// Priority 1 – user-selected emphasis
 	for _, skill := range emphasizedSkills {
 		add(skill)
 	}
 
-	// Priority 2 – every language detected in every repo
 	for _, p := range projects {
 		for lang := range p.Languages {
 			add(lang)
 		}
 	}
 
-	// Priority 3 – infer frameworks from dependency names
 	for _, p := range projects {
 		for _, deps := range p.Dependencies {
 			for _, dep := range deps {
@@ -155,7 +154,6 @@ func (s *ProfileService) buildBadgesFromProjectData(
 		}
 	}
 
-	// Priority 4 – LLM extracted skills fill remaining gaps
 	for _, skill := range llmSkills {
 		add(skill)
 	}
@@ -168,7 +166,6 @@ func (s *ProfileService) buildBadgesFromProjectData(
 }
 
 // buildBadgeCatalog returns a comprehensive technology → Badge map (all keys lowercase).
-// Only Name and Color are needed; the URL is constructed dynamically when rendering.
 func buildBadgeCatalog() map[string]models.Badge {
 	entries := []models.Badge{
 		// ---------- Languages ----------
@@ -259,7 +256,6 @@ func buildBadgeCatalog() map[string]models.Badge {
 		{Name: "OpenAI", Color: "412991"},
 	}
 
-	// Build lookup map: every reasonable alias → canonical Badge
 	m := make(map[string]models.Badge, len(entries)*2)
 	aliases := map[string]string{
 		"golang":       "Go",
@@ -289,14 +285,12 @@ func buildBadgeCatalog() map[string]models.Badge {
 		"bash":         "Shell",
 	}
 
-	// Index entries by lowercased canonical name
 	byName := make(map[string]models.Badge, len(entries))
 	for _, e := range entries {
 		byName[strings.ToLower(e.Name)] = e
 		m[strings.ToLower(e.Name)] = e
 	}
 
-	// Add aliases
 	for alias, canonical := range aliases {
 		if b, ok := byName[strings.ToLower(canonical)]; ok {
 			m[strings.ToLower(alias)] = b
@@ -350,7 +344,6 @@ func toLogoSlug(name string) string {
 	return s
 }
 
-// Helpers – aggregate project data
 
 // collectTopLanguages sums bytes per language across all repos, returns top-n names.
 func collectTopLanguages(projects []models.RepositoryAnalysis, n int) []string {
@@ -438,7 +431,6 @@ func buildTypingLines(config *models.ProfileConfig, topLangs, topics []string) [
 	return lines
 }
 
-// Markdown builder
 
 // buildMarkdown assembles the README from all pipeline data — no hardcoded content.
 func (s *ProfileService) buildMarkdown(
@@ -448,6 +440,7 @@ func (s *ProfileService) buildMarkdown(
 	summaries []models.ProjectSummary,
 	badges []models.Badge,
 	config *models.ProfileConfig,
+	hasBanner bool,
 ) string {
 	var md strings.Builder
 
@@ -462,7 +455,6 @@ func (s *ProfileService) buildMarkdown(
 		contactEmail = user.Email
 	}
 
-	// ── HERO ──────────────────────────────────────────────────────────────
 	md.WriteString("<div align=\"center\">\n\n")
 
 	if user.AvatarURL != "" {
@@ -481,7 +473,6 @@ func (s *ProfileService) buildMarkdown(
 		md.WriteString(fmt.Sprintf("**%s**\n\n", user.Bio))
 	}
 
-	// Location / company metadata
 	var meta []string
 	if user.Location != "" {
 		meta = append(meta, "📍 "+user.Location)
@@ -498,25 +489,21 @@ func (s *ProfileService) buildMarkdown(
 		md.WriteString(strings.Join(meta, " &nbsp;·&nbsp; ") + "\n\n")
 	}
 
-	// Typing SVG built from real data
 	typingLines := buildTypingLines(config, topLangs, allTopics)
 	md.WriteString(fmt.Sprintf(
 		"[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=3000&pause=1000&color=2E97F7&center=true&vCenter=true&width=650&height=80&lines=%s)](https://git.io/typing-svg)\n\n",
 		strings.Join(typingLines, ";"),
 	))
 
-	// Profile counters
 	md.WriteString(fmt.Sprintf("![Profile Views](https://komarev.com/ghpvc/?username=%s&label=Profile%%20Views&color=0e75b6&style=flat)\n", username))
 	md.WriteString(fmt.Sprintf("[![Followers](https://img.shields.io/github/followers/%s?label=Followers&style=social)](https://github.com/%s?tab=followers)\n", username, username))
 	md.WriteString(fmt.Sprintf("[![Stars](https://img.shields.io/github/stars/%s?label=Stars&style=social)](https://github.com/%s)\n\n", username, username))
 	md.WriteString("</div>\n\n")
 
-	// ── ABOUT ME ──────────────────────────────────────────────────────────
 	md.WriteString("## 👨‍💻 About Me\n\n")
 	md.WriteString(pitch)
 	md.WriteString("\n\n")
 
-	// Dynamic bullets sourced from real data
 	if config.TargetRole != "" {
 		md.WriteString(fmt.Sprintf("- 🎯 Growing as a **%s**\n", config.TargetRole))
 	}
@@ -546,7 +533,6 @@ func (s *ProfileService) buildMarkdown(
 	}
 	md.WriteString("\n")
 
-	// ── CONNECT ───────────────────────────────────────────────────────────
 	md.WriteString("## 🌐 Connect\n\n")
 	md.WriteString("<div align=\"center\">\n\n")
 
@@ -565,7 +551,6 @@ func (s *ProfileService) buildMarkdown(
 	md.WriteString(fmt.Sprintf("[![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/%s)\n\n", username))
 	md.WriteString("</div>\n\n")
 
-	// ── TECH STACK ────────────────────────────────────────────────────────
 	if len(badges) > 0 {
 		md.WriteString("## 🛠️ Tech Stack\n\n")
 		md.WriteString("<div align=\"center\">\n\n")
@@ -591,7 +576,6 @@ func (s *ProfileService) buildMarkdown(
 		md.WriteString("</div>\n\n")
 	}
 
-	// ── GITHUB STATS ──────────────────────────────────────────────────────
 	md.WriteString("## 📊 GitHub Stats\n\n")
 	md.WriteString("<div align=\"center\">\n\n")
 	md.WriteString(fmt.Sprintf(
@@ -612,7 +596,6 @@ func (s *ProfileService) buildMarkdown(
 	))
 	md.WriteString("</div>\n\n")
 
-	// ── FEATURED PROJECTS ─────────────────────────────────────────────────
 	if len(summaries) > 0 {
 		md.WriteString("## 🚀 Featured Projects\n\n")
 
@@ -637,12 +620,10 @@ func (s *ProfileService) buildMarkdown(
 				owner, repo.Name, repo.HTMLURL,
 			))
 
-			// LLM summary
 			if sum.Summary != "" {
 				md.WriteString(sum.Summary + "\n\n")
 			}
 
-			// Tech stack from LLM
 			if len(sum.TechStack) > 0 {
 				md.WriteString("**Tech:** ")
 				for _, tech := range sum.TechStack {
@@ -651,7 +632,6 @@ func (s *ProfileService) buildMarkdown(
 				md.WriteString("\n\n")
 			}
 
-			// Real stats from repo + analysis
 			var stats []string
 			if repo.StargazersCount > 0 {
 				stats = append(stats, fmt.Sprintf("⭐ %d stars", repo.StargazersCount))
@@ -659,7 +639,6 @@ func (s *ProfileService) buildMarkdown(
 			if repo.ForksCount > 0 {
 				stats = append(stats, fmt.Sprintf("🍴 %d forks", repo.ForksCount))
 			}
-			// Commit + contributor counts from the RepositoryAnalysis
 			if i < len(req.Projects) {
 				analysis := req.Projects[i]
 				if analysis.CommitCount > 0 {
@@ -668,13 +647,11 @@ func (s *ProfileService) buildMarkdown(
 				if analysis.ContributorCount > 0 {
 					stats = append(stats, fmt.Sprintf("👥 %d contributors", analysis.ContributorCount))
 				}
-				// Top 3 languages from actual language map
 				topProjLangs := collectTopLanguages([]models.RepositoryAnalysis{analysis}, 3)
 				if len(topProjLangs) > 0 {
 					stats = append(stats, "🔤 "+strings.Join(topProjLangs, " / "))
 				}
 			}
-			// Topics
 			if len(repo.Topics) > 0 {
 				shown := repo.Topics[:min(5, len(repo.Topics))]
 				stats = append(stats, "🏷️ "+strings.Join(shown, ", "))
@@ -690,7 +667,6 @@ func (s *ProfileService) buildMarkdown(
 		}
 	}
 
-	// ── ACTIVITY GRAPH ────────────────────────────────────────────────────
 	md.WriteString("## 📈 Contribution Activity\n\n")
 	md.WriteString("<div align=\"center\">\n\n")
 	md.WriteString(fmt.Sprintf(
@@ -699,7 +675,6 @@ func (s *ProfileService) buildMarkdown(
 	))
 	md.WriteString("</div>\n\n")
 
-	// ── FOOTER ────────────────────────────────────────────────────────────
 	md.WriteString("---\n\n")
 	md.WriteString("<div align=\"center\">\n\n")
 	md.WriteString(fmt.Sprintf(
@@ -711,7 +686,6 @@ func (s *ProfileService) buildMarkdown(
 	return md.String()
 }
 
-// Badge categorisation
 
 // organizeBadgesByCategory sorts badges into four display groups.
 func (s *ProfileService) organizeBadgesByCategory(badges []models.Badge) map[string][]models.Badge {
@@ -758,7 +732,6 @@ func (s *ProfileService) organizeBadgesByCategory(badges []models.Badge) map[str
 		}
 	}
 
-	// Drop empty buckets
 	for k, v := range cats {
 		if len(v) == 0 {
 			delete(cats, k)

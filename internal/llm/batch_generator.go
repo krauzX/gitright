@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"regexp"
 	"strings"
+	"time"
 
+	"github.com/krauzx/gitright/internal/config"
 	"github.com/krauzx/gitright/internal/models"
 )
 
@@ -49,7 +50,6 @@ func (cg *ContentGenerator) GenerateBatchedProfile(ctx context.Context, apiKey s
 		return nil, fmt.Errorf("generation failed: %w", err)
 	}
 
-	// Extract JSON from response (handles markdown blocks and extra text)
 	jsonStr := extractJSON(responseText)
 	if jsonStr == "" {
 		slog.Error("No JSON found in response", "response", responseText)
@@ -62,7 +62,6 @@ func (cg *ContentGenerator) GenerateBatchedProfile(ctx context.Context, apiKey s
 		return nil, fmt.Errorf("invalid response format: %w", err)
 	}
 
-	// Validate response
 	if response.ProfilePitch == "" {
 		return nil, fmt.Errorf("missing profile_pitch in response")
 	}
@@ -74,9 +73,12 @@ func (cg *ContentGenerator) GenerateBatchedProfile(ctx context.Context, apiKey s
 }
 
 func (cg *ContentGenerator) createClientWithAPIKey(apiKey string) (*GeminiClient, error) {
-	config := cg.client.config
-	config.APIKey = apiKey
-	return NewGeminiClient(config)
+	cfg := config.GoogleAIConfig{
+		APIKey:  apiKey,
+		Model:   "gemini-2.5-flash",
+		Timeout: 120 * time.Second,
+	}
+	return NewGeminiClient(cfg)
 }
 
 //  creates comprehensive system instruction for batch generation
@@ -186,22 +188,49 @@ func buildBatchedUserPrompt(req BatchProfileRequest) string {
 
 // extractJSON extracts JSON from Gemini response (handles markdown blocks)
 func extractJSON(response string) string {
-	// Try to find JSON in markdown code block
-	jsonBlockPattern := regexp.MustCompile("(?s)```(?:json)?\\s*({.*?})\\s*```")
-	if matches := jsonBlockPattern.FindStringSubmatch(response); len(matches) > 1 {
-		return strings.TrimSpace(matches[1])
+	s := strings.TrimSpace(response)
+
+	s = strings.TrimPrefix(s, "```json")
+	s = strings.TrimPrefix(s, "```")
+	s = strings.TrimSuffix(s, "```")
+	s = strings.TrimSpace(s)
+
+	start := strings.IndexFunc(s, func(r rune) bool { return r == '{' || r == '[' })
+	if start == -1 {
+		return ""
 	}
 
-	// Try to find raw JSON object
-	jsonPattern := regexp.MustCompile("(?s)({\\s*\"[^\"]+\".*})")
-	if matches := jsonPattern.FindStringSubmatch(response); len(matches) > 1 {
-		return strings.TrimSpace(matches[1])
+	depth := 0
+	inString := false
+	escaped := false
+
+	for i := start; i < len(s); i++ {
+		ch := s[i]
+		if escaped {
+			escaped = false
+			continue
+		}
+		if ch == '\\' && inString {
+			escaped = true
+			continue
+		}
+		if ch == '"' {
+			inString = !inString
+			continue
+		}
+		if inString {
+			continue
+		}
+		switch ch {
+		case '{', '[':
+			depth++
+		case '}', ']':
+			depth--
+		}
+		if depth == 0 {
+			return s[start : i+1]
+		}
 	}
 
-	// Return as-is if already clean
-	if strings.HasPrefix(strings.TrimSpace(response), "{") {
-		return strings.TrimSpace(response)
-	}
-
-	return ""
+	return s[start:]
 }

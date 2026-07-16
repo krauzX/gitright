@@ -4,7 +4,6 @@ import (
 	"time"
 )
 
-// User represents a GitHub user
 type User struct {
 	ID             int64     `json:"id" db:"id"`
 	GitHubID       int64     `json:"github_id" db:"github_id"`
@@ -23,7 +22,6 @@ type User struct {
 	LastLoginAt    time.Time `json:"last_login_at" db:"last_login_at"`
 }
 
-// Repository represents a GitHub repository
 type Repository struct {
 	ID              int64     `json:"id"`
 	GitHubID        int64     `json:"github_id"`
@@ -45,7 +43,6 @@ type Repository struct {
 	PushedAt        time.Time `json:"pushed_at"`
 }
 
-// RepositoryAnalysis contains analyzed repository information
 type RepositoryAnalysis struct {
 	Repository       *Repository         `json:"repository"`
 	Languages        map[string]int      `json:"languages"`
@@ -56,7 +53,6 @@ type RepositoryAnalysis struct {
 	ContributorCount int                 `json:"contributor_count"`
 }
 
-// Project represents a user's selected project for their profile
 type Project struct {
 	ID               int64     `json:"id" db:"id"`
 	UserID           int64     `json:"user_id" db:"user_id"`
@@ -71,7 +67,6 @@ type Project struct {
 	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
 }
 
-// ProfileConfig represents user's profile customization settings
 type ProfileConfig struct {
 	ID               int64              `json:"id" db:"id"`
 	UserID           int64              `json:"user_id" db:"user_id"`
@@ -85,26 +80,12 @@ type ProfileConfig struct {
 	UpdatedAt        time.Time          `json:"updated_at" db:"updated_at"`
 }
 
-// ContactPreferences represents contact preferences
 type ContactPreferences struct {
 	LinkedIn        string   `json:"linkedin"`
 	PersonalWebsite string   `json:"personal_website"`
 	Email           string   `json:"email"`
 	Twitter         string   `json:"twitter"`
 	PreferredOrder  []string `json:"preferred_order"`
-}
-
-// GeneratedProfile represents the final generated README content
-type GeneratedProfile struct {
-	ID              int64      `json:"id" db:"id"`
-	UserID          int64      `json:"user_id" db:"user_id"`
-	ConfigID        int64      `json:"config_id" db:"config_id"`
-	Content         string     `json:"content" db:"content"`
-	MarkdownPreview string     `json:"markdown_preview" db:"markdown_preview"`
-	Deployed        bool       `json:"deployed" db:"deployed"`
-	DeployedAt      *time.Time `json:"deployed_at,omitempty" db:"deployed_at"`
-	Version         int        `json:"version" db:"version"`
-	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
 }
 
 type ContentGenerationRequest struct {
@@ -118,35 +99,18 @@ type ContentGenerationRequest struct {
 
 type ContentGenerationResponse struct {
 	Markdown        string   `json:"markdown"`
+	BannerSVG       string   `json:"banner_svg,omitempty"`
 	ExtractedSkills []string `json:"extracted_skills"`
 	SuggestedBadges []Badge  `json:"suggested_badges"`
 	Confidence      float64  `json:"confidence"`
 }
 
-// Badge represents a technology badge
 type Badge struct {
 	Name  string `json:"name"`
 	URL   string `json:"url"`
 	Color string `json:"color"`
 }
 
-// ProfilePitch represents the generated introduction paragraph
-type ProfilePitch struct {
-	Content    string  `json:"content"`
-	Confidence float64 `json:"confidence"`
-}
-
-// TemplateData represents data for template rendering
-type TemplateData struct {
-	User         *User            `json:"user"`
-	Config       *ProfileConfig   `json:"config"`
-	Projects     []ProjectSummary `json:"projects"`
-	Skills       []string         `json:"skills"`
-	Badges       []Badge          `json:"badges"`
-	ProfilePitch *ProfilePitch    `json:"profile_pitch"`
-}
-
-// ProjectSummary combines project details with generated content
 type ProjectSummary struct {
 	Project    *Project    `json:"project"`
 	Repository *Repository `json:"repository"`
