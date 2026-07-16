@@ -4,17 +4,50 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"time"
 
+	gocrypto "github.com/krauzx/gitright/internal/crypto"
 	"github.com/krauzx/gitright/internal/models"
 )
 
 type UserRepository struct {
-	db *sql.DB
+	db            *sql.DB
+	encryptionKey []byte
 }
 
-func NewUserRepository(db *sql.DB) *UserRepository {
-	return &UserRepository{db: db}
+func NewUserRepository(db *sql.DB, encryptionKey string) *UserRepository {
+	var key []byte
+	if len(encryptionKey) == 32 {
+		key = []byte(encryptionKey)
+	} else {
+		slog.Warn("TOKEN_ENCRYPTION_KEY not set or invalid length, tokens stored in plaintext")
+	}
+	return &UserRepository{db: db, encryptionKey: key}
+}
+
+func (r *UserRepository) encryptToken(token string) string {
+	if len(r.encryptionKey) == 0 || token == "" {
+		return token
+	}
+	encrypted, err := gocrypto.EncryptToken(token, r.encryptionKey)
+	if err != nil {
+		slog.Error("Failed to encrypt token", "error", err)
+		return token
+	}
+	return encrypted
+}
+
+func (r *UserRepository) decryptToken(token string) string {
+	if len(r.encryptionKey) == 0 || token == "" {
+		return token
+	}
+	decrypted, err := gocrypto.DecryptToken(token, r.encryptionKey)
+	if err != nil {
+		slog.Error("Failed to decrypt token, returning as-is", "error", err)
+		return token
+	}
+	return decrypted
 }
 
 func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
@@ -26,7 +59,9 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 	return r.db.QueryRowContext(
 		ctx, query,
 		user.GitHubID, user.Username, user.Email, user.AvatarURL, user.Bio,
-		user.Location, user.Company, user.Blog, user.AccessToken, user.RefreshToken,
+		user.Location, user.Company, user.Blog,
+		r.encryptToken(user.AccessToken),
+		r.encryptToken(user.RefreshToken),
 		user.TokenExpiresAt, time.Now(),
 	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
 }
@@ -48,6 +83,8 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (*models.User, e
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("user not found")
 	}
+	user.AccessToken = r.decryptToken(user.AccessToken)
+	user.RefreshToken = r.decryptToken(user.RefreshToken)
 	return user, err
 }
 
@@ -68,6 +105,8 @@ func (r *UserRepository) GetByGitHubID(ctx context.Context, githubID int64) (*mo
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("user not found")
 	}
+	user.AccessToken = r.decryptToken(user.AccessToken)
+	user.RefreshToken = r.decryptToken(user.RefreshToken)
 	return user, err
 }
 
@@ -82,7 +121,9 @@ func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 	_, err := r.db.ExecContext(
 		ctx, query,
 		user.Username, user.Email, user.AvatarURL, user.Bio, user.Location,
-		user.Company, user.Blog, user.AccessToken, user.RefreshToken,
+		user.Company, user.Blog,
+		r.encryptToken(user.AccessToken),
+		r.encryptToken(user.RefreshToken),
 		user.TokenExpiresAt, time.Now(), time.Now(), user.ID,
 	)
 	return err

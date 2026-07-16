@@ -1,10 +1,13 @@
 package routes
 
 import (
+	"time"
+
 	"github.com/krauzx/gitright/internal/handlers"
 	"github.com/krauzx/gitright/internal/middleware"
 	"github.com/krauzx/gitright/internal/repository"
 	"github.com/labstack/echo/v4"
+	"golang.org/x/time/rate"
 )
 
 func RegisterRoutes(
@@ -12,8 +15,10 @@ func RegisterRoutes(
 	authHandler *handlers.AuthHandler,
 	githubHandler *handlers.GitHubHandler,
 	profileHandler *handlers.ProfileHandler,
+	autoImportHandler *handlers.AutoImportHandler,
+	graphHandler *handlers.GraphHandler,
+	bannerHandler *handlers.BannerHandler,
 	healthHandler *handlers.HealthHandler,
-	wsHandler *handlers.WebSocketHandler,
 	userRepo *repository.UserRepository,
 	sessionRepo *repository.SessionRepository,
 	jwtSecret string,
@@ -25,7 +30,12 @@ func RegisterRoutes(
 	api := e.Group("/api/v1")
 
 	auth := api.Group("/auth")
-	auth.GET("/login", authHandler.Login)
+	loginLimiter := middleware.NewRateLimiterMemoryStoreWithConfig(middleware.RateLimiterMemoryStoreConfig{
+		Rate:      rate.Limit(1),
+		Burst:     3,
+		ExpiresIn: 10 * time.Minute,
+	})
+	auth.GET("/login", authHandler.Login, middleware.RateLimiter(loginLimiter))
 	auth.GET("/callback", authHandler.Callback)
 
 	protected := api.Group("")
@@ -36,14 +46,17 @@ func RegisterRoutes(
 
 	gh := protected.Group("/github")
 	gh.GET("/repositories", githubHandler.ListRepositories)
-	gh.GET("/repositories/:owner/:repo", githubHandler.GetRepository)
-	gh.GET("/repositories/:owner/:repo/analyze", githubHandler.AnalyzeRepository)
 	gh.POST("/repositories/batch-analyze", githubHandler.BatchAnalyze)
 	gh.DELETE("/cache", githubHandler.ClearCache)
 
 	profile := protected.Group("/profile")
 	profile.POST("/generate", profileHandler.Generate)
 	profile.POST("/deploy", profileHandler.Deploy)
-	profile.POST("/preview", profileHandler.Preview)
-	profile.GET("/ws", wsHandler.HandleProfileGeneration)
+	profile.POST("/auto-import", autoImportHandler.AutoImport)
+	profile.GET("/banner", bannerHandler.GenerateBanner)
+	profile.GET("/timeline", bannerHandler.GenerateTimeline)
+
+	graph := protected.Group("/graph")
+	graph.GET("/telemetry", graphHandler.GenerateTelemetryGraph)
+	graph.GET("/contributions", graphHandler.GenerateContributionGraph)
 }

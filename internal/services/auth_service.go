@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/krauzx/gitright/internal/github"
@@ -40,6 +41,7 @@ func (s *AuthService) GenerateOAuthState(ctx context.Context) (string, error) {
 	expiresAt := time.Now().Add(10 * time.Minute)
 
 	if err := s.sessionRepo.CreateOAuthState(ctx, state, expiresAt); err != nil {
+		slog.Error("Failed to create OAuth state in database", "error", err, "state_prefix", state[:8])
 		return "", fmt.Errorf("failed to store state: %w", err)
 	}
 

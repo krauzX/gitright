@@ -96,7 +96,7 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		Environment: getEnv("ENV", "development"),
-		Host:        getEnv("HOST", "localhost"),
+		Host:        getEnv("HOST", "0.0.0.0"),
 		Port:        getEnvAsInt("PORT", 8080),
 		LogLevel:    getEnv("LOG_LEVEL", "info"),
 		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -43,6 +43,7 @@ func (h *AuthHandler) Login(c echo.Context) error {
 
 	state, err := h.authService.GenerateOAuthState(ctx)
 	if err != nil {
+		slog.Error("Failed to generate OAuth state", "error", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to generate auth state")
 	}
 
@@ -69,12 +70,14 @@ func (h *AuthHandler) Callback(c echo.Context) error {
 	}
 
 	if err := h.authService.ValidateOAuthState(ctx, state); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid or expired state: %v", err))
+		slog.Warn("Invalid OAuth state", "error", err)
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid or expired state")
 	}
 
 	user, _, err := h.authService.HandleCallback(ctx, code)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Authentication failed: %v", err))
+		slog.Error("Authentication failed", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Authentication failed")
 	}
 
 	// 24-hour JWT — use this as the Bearer token for all subsequent requests.

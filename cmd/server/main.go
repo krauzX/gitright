@@ -51,8 +51,7 @@ func main() {
 	}
 	defer db.Close()
 
-	userRepo := repository.NewUserRepository(db)
-	projectRepo := repository.NewProjectRepository(db)
+	userRepo := repository.NewUserRepository(db, cfg.Session.EncryptionKey)
 	sessionRepo := repository.NewSessionRepository(db)
 	profileCacheRepo := repository.NewProfileCacheRepository(db)
 	repoCacheRepo := repository.NewRepositoryCacheRepository(db)
@@ -60,15 +59,16 @@ func main() {
 	githubClient := github.NewClient(cfg.GitHub)
 	githubAnalyzer := github.NewAnalyzer(githubClient)
 
-	contentGenerator, err := llm.NewContentGenerator(cfg.GoogleAI)
-	if err != nil {
-		slog.Error("Failed to initialize content generator", "error", err)
-		os.Exit(1)
-	}
+	contentGenerator := llm.NewContentGenerator(cfg.GoogleAI)
 
 	authService := services.NewAuthService(githubClient, userRepo, sessionRepo)
 	githubService := services.NewGitHubService(githubClient, githubAnalyzer, repoCacheRepo)
-	profileService := services.NewProfileService(contentGenerator, projectRepo, githubService, profileCacheRepo)
+	profileService := services.NewProfileService(contentGenerator, githubService, profileCacheRepo)
+
+	autoImportService := services.NewAutoImportService()
+	autoImportHandler := handlers.NewAutoImportHandler(autoImportService)
+	graphHandler := handlers.NewGraphHandler(autoImportService)
+	bannerHandler := handlers.NewBannerHandler(autoImportService)
 
 	authHandler := handlers.NewAuthHandler(
 		authService,
@@ -82,7 +82,6 @@ func main() {
 	githubHandler := handlers.NewGitHubHandler(githubService)
 	profileHandler := handlers.NewProfileHandler(profileService)
 	healthHandler := handlers.NewHealthHandler(db)
-	wsHandler := handlers.NewWebSocketHandler(profileService, cfg.CORS.AllowedOrigins)
 
 	e := echo.New()
 	e.HideBanner = true
@@ -107,9 +106,12 @@ func main() {
 		AllowHeaders:     cfg.CORS.AllowedHeaders,
 		AllowCredentials: true,
 	}))
-	e.Use(middleware.RateLimiterWithConfig(middleware.RateLimiterConfig{
-		Store: middleware.NewRateLimiterMemoryStore(rate.Limit(cfg.RateLimit.RequestsPerMinute)),
-	}))
+	rateLimitStore := middleware.NewRateLimiterMemoryStoreWithConfig(middleware.RateLimiterMemoryStoreConfig{
+		Rate:      rate.Limit(cfg.RateLimit.RequestsPerMinute / 60),
+		Burst:     cfg.RateLimit.Burst,
+		ExpiresIn: 5 * time.Minute,
+	})
+	e.Use(middleware.RateLimiter(rateLimitStore))
 	e.Use(middleware.SecureWithConfig(middleware.SecureConfig{
 		XSSProtection:         "1; mode=block",
 		ContentTypeNosniff:    "nosniff",
@@ -118,7 +120,7 @@ func main() {
 		ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;",
 	}))
 
-	routes.RegisterRoutes(e, authHandler, githubHandler, profileHandler, healthHandler, wsHandler, userRepo, sessionRepo, cfg.Session.Secret)
+	routes.RegisterRoutes(e, authHandler, githubHandler, profileHandler, autoImportHandler, graphHandler, bannerHandler, healthHandler, userRepo, sessionRepo, cfg.Session.Secret)
 
 	go func() {
 		addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)

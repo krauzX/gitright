@@ -33,6 +33,7 @@ func main() {
 	migrations := []string{
 		"migrations/001_initial_schema.sql",
 		"migrations/002_redis_removal.sql",
+		"migrations/003_fix_profile_cache.sql",
 	}
 
 	for _, path := range migrations {

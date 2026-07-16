@@ -1,29 +1,24 @@
-# Binaries for programs and plugins
+# Binaries
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-
-# Test binary, built with `go test -c`
 *.test
-
-# Output of the go coverage tool
 *.out
 coverage.out
 *.coverprofile
 
-# Go workspace file
+# Go workspace
 go.work
 go.work.sum
 
-# Dependency directories
+# Dependencies
 vendor/
 node_modules/
 
-# Build directories
-backend/bin/
-backend/dist/
+# Build
+bin/
 frontend/dist/
 frontend/build/
 
@@ -34,7 +29,7 @@ frontend/build/
 *.swo
 *~
 
-# Environment variables
+# Environment
 .env
 .env.local
 .env.development
@@ -45,18 +40,12 @@ frontend/build/
 # Logs
 logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
-Desktop.ini
 
-# Temporary files
-tmpclaude-*
+# Temp
 tmp/
 temp/
 *.tmp
@@ -66,41 +55,26 @@ temp/
 *.sqlite
 *.sqlite3
 
-# Redis dump
-dump.rdb
-
-# Terraform
-*.tfstate
-*.tfstate.*
-.terraform/
-.terraform.lock.hcl
-
-# Generated files
-frontend/src/generated/
-backend/internal/generated/
-
 # Cache
 .cache/
-.parcel-cache/
 .next/
-.nuxt/
 .vite/
 
-# Test coverage
+# Coverage
 coverage/
 .nyc_output/
 
-# Certificates and keys
+# Secrets
 *.pem
 *.key
 *.crt
-*.p12
 secrets/
 
-# Documentation builds
-docs/_build/
-docs/.doctrees/
+# Docs (except README.md)
+docs/
+*.md
+!README.md
 
-# Backup files
+# Backup
 *.bak
 *.backup

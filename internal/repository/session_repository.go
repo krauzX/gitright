@@ -59,14 +59,6 @@ func (r *SessionRepository) DeleteOAuthState(ctx context.Context, state string) 
 	return nil
 }
 
-func (r *SessionRepository) CleanupExpiredSessions(ctx context.Context) error {
-	_, err := r.db.ExecContext(ctx, `SELECT cleanup_expired_data()`)
-	if err != nil {
-		return fmt.Errorf("failed to cleanup expired sessions: %w", err)
-	}
-	return nil
-}
-
 func (r *SessionRepository) RevokeToken(ctx context.Context, jti string, expiresAt time.Time) error {
 	query := `
 		INSERT INTO sessions (id, state_type, state_value, expires_at)
@@ -100,20 +92,4 @@ func (r *SessionRepository) IsTokenRevoked(ctx context.Context, jti string) (boo
 	return true, nil
 }
 
-func (r *SessionRepository) GetStats(ctx context.Context) (map[string]int64, error) {
-	query := `
-		SELECT
-			COUNT(*) FILTER (WHERE state_type = 'oauth_state') AS oauth_states_count,
-			COUNT(*) FILTER (WHERE expires_at < NOW()) AS expired_count
-		FROM sessions
-	`
-	var oauthStatesCount, expiredCount int64
-	err := r.db.QueryRowContext(ctx, query).Scan(&oauthStatesCount, &expiredCount)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get session stats: %w", err)
-	}
-	return map[string]int64{
-		"oauth_states": oauthStatesCount,
-		"expired":      expiredCount,
-	}, nil
-}
+

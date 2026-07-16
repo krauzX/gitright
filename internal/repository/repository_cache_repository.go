@@ -70,15 +70,6 @@ func (r *RepositoryCacheRepository) SetRepositoryList(ctx context.Context, userI
 	return nil
 }
 
-func (r *RepositoryCacheRepository) InvalidateRepositoryList(ctx context.Context, userID int64, includePrivate bool) error {
-	query := `DELETE FROM repository_list_cache WHERE user_id = $1 AND include_private = $2`
-	_, err := r.db.ExecContext(ctx, query, userID, includePrivate)
-	if err != nil {
-		return fmt.Errorf("failed to invalidate repository list cache: %w", err)
-	}
-	return nil
-}
-
 func (r *RepositoryCacheRepository) InvalidateAllRepositoryLists(ctx context.Context, userID int64) error {
 	query := `DELETE FROM repository_list_cache WHERE user_id = $1`
 	_, err := r.db.ExecContext(ctx, query, userID)
@@ -186,36 +177,4 @@ func (r *RepositoryCacheRepository) SetRepositoryAnalysis(ctx context.Context, g
 	return nil
 }
 
-func (r *RepositoryCacheRepository) InvalidateRepositoryAnalysis(ctx context.Context, githubID int64) error {
-	query := `DELETE FROM repository_analysis_cache WHERE github_id = $1`
-	_, err := r.db.ExecContext(ctx, query, githubID)
-	if err != nil {
-		return fmt.Errorf("failed to invalidate repository analysis: %w", err)
-	}
-	return nil
-}
 
-func (r *RepositoryCacheRepository) GetStats(ctx context.Context) (map[string]interface{}, error) {
-	query := `
-		SELECT
-			(SELECT COUNT(*) FROM repository_list_cache WHERE expires_at > NOW()) AS cached_lists,
-			(SELECT COUNT(*) FROM repository_list_cache WHERE expires_at <= NOW()) AS expired_lists,
-			(SELECT COUNT(*) FROM repository_analysis_cache WHERE expires_at > NOW()) AS cached_analyses,
-			(SELECT COUNT(*) FROM repository_analysis_cache WHERE expires_at <= NOW()) AS expired_analyses
-	`
-
-	var cachedLists, expiredLists, cachedAnalyses, expiredAnalyses int64
-	err := r.db.QueryRowContext(ctx, query).Scan(&cachedLists, &expiredLists, &cachedAnalyses, &expiredAnalyses)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get cache stats: %w", err)
-	}
-
-	return map[string]interface{}{
-		"cached_repo_lists":     cachedLists,
-		"expired_repo_lists":    expiredLists,
-		"cached_analyses":       cachedAnalyses,
-		"expired_analyses":      expiredAnalyses,
-		"total_cached_entries":  cachedLists + cachedAnalyses,
-		"total_expired_entries": expiredLists + expiredAnalyses,
-	}, nil
-}
