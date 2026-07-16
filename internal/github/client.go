@@ -29,10 +29,6 @@ func NewClient(cfg config.GitHubConfig) *Client {
 	}
 }
 
-func (c *Client) GetAuthorizationURL(state string) string {
-	return c.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
-}
-
 func (c *Client) ExchangeCode(ctx context.Context, code string) (*oauth2.Token, error) {
 	token, err := c.oauthConfig.Exchange(ctx, code)
 	if err != nil {
@@ -236,7 +232,3 @@ func (c *Client) GetProfileReadmeSHA(ctx context.Context, token, username string
 	return "", nil
 }
 
-func (c *Client) ValidateToken(ctx context.Context, token string) (bool, error) {
-	_, err := c.GetUser(ctx, token)
-	return err == nil, err
-}
