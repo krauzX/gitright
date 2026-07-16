@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import LandingPage from "./app/pages/LandingPage";
 import { DashboardPage } from "./app/pages/DashboardPage";
 import { AuthCallbackPage } from "./app/pages/AuthCallbackPage";
@@ -10,26 +11,28 @@ function App() {
   const { isAuthenticated } = useAuthStore();
 
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/auth/callback" element={<AuthCallbackPage />} />
+    <ErrorBoundary>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
-      {/* Protected routes */}
-      <Route
-        path="/dashboard"
-        element={
-          isAuthenticated ? <DashboardPage /> : <Navigate to="/" replace />
-        }
-      />
-      <Route
-        path="/profile-builder"
-        element={
-          isAuthenticated ? <ProfileBuilderPage /> : <Navigate to="/" replace />
-        }
-      />
+        {/* Protected routes */}
+        <Route
+          path="/dashboard"
+          element={
+            isAuthenticated ? <DashboardPage /> : <Navigate to="/" replace />
+          }
+        />
+        <Route
+          path="/profile-builder"
+          element={
+            isAuthenticated ? <ProfileBuilderPage /> : <Navigate to="/" replace />
+          }
+        />
 
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </ErrorBoundary>
   );
 }
 

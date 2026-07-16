@@ -1,13 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import {
-  Github,
+  GitBranch,
   Sparkles,
   Zap,
   FileText,
@@ -16,392 +14,280 @@ import {
   Star,
   ArrowRight,
   CheckCircle2,
+  Shield,
+  Globe,
 } from "lucide-react";
 
-gsap.registerPlugin(ScrollTrigger);
+const features = [
+  {
+    icon: <Sparkles className="w-6 h-6" />,
+    title: "AI-Powered Generation",
+    desc: "Gemini analyzes your code and writes a README that highlights your actual strengths.",
+    color: "text-violet-400",
+    bg: "bg-violet-500/10",
+  },
+  {
+    icon: <Code2 className="w-6 h-6" />,
+    title: "Deep Code Analysis",
+    desc: "Scans repos for languages, frameworks, dependencies, and contribution patterns.",
+    color: "text-cyan-400",
+    bg: "bg-cyan-500/10",
+  },
+  {
+    icon: <Zap className="w-6 h-6" />,
+    title: "One-Click Deploy",
+    desc: "Push your generated profile directly to GitHub. No copy-paste needed.",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10",
+  },
+  {
+    icon: <FileText className="w-6 h-6" />,
+    title: "Live Preview",
+    desc: "See your profile render in real-time before deploying.",
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+  },
+  {
+    icon: <Shield className="w-6 h-6" />,
+    title: "Secure BYOK",
+    desc: "Your Gemini API key stays in your browser. Never stored on our servers.",
+    color: "text-rose-400",
+    bg: "bg-rose-500/10",
+  },
+  {
+    icon: <Globe className="w-6 h-6" />,
+    title: "SVG Banner Generator",
+    desc: "Premium animated hero banners with glassmorphism and typing effects.",
+    color: "text-indigo-400",
+    bg: "bg-indigo-500/10",
+  },
+];
+
+const steps = [
+  { num: "01", title: "Sign In", desc: "GitHub OAuth" },
+  { num: "02", title: "Select Repos", desc: "Pick your best" },
+  { num: "03", title: "Configure", desc: "Role, tone, skills" },
+  { num: "04", title: "Generate", desc: "AI writes it" },
+  { num: "05", title: "Deploy", desc: "One click" },
+];
 
 export default function LandingPage() {
-  const heroRef = useRef<HTMLDivElement>(null);
-  const featuresRef = useRef<HTMLDivElement>(null);
-  const ctaRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      // Hero animations
-      gsap.from(".hero-title", {
-        opacity: 0,
-        y: 50,
-        duration: 1,
-        ease: "power4.out",
-      });
-
-      gsap.from(".hero-subtitle", {
-        opacity: 0,
-        y: 30,
-        duration: 1,
-        delay: 0.3,
-        ease: "power4.out",
-      });
-
-      gsap.from(".hero-buttons", {
-        opacity: 0,
-        y: 30,
-        duration: 1,
-        delay: 0.6,
-        ease: "power4.out",
-      });
-
-      // Floating animation for decorative elements
-      gsap.to(".float", {
-        y: -20,
-        duration: 2,
-        repeat: -1,
-        yoyo: true,
-        ease: "power1.inOut",
-        stagger: 0.2,
-      });
-
-      // Feature cards animation on scroll
-      gsap.from(".feature-card", {
-        scrollTrigger: {
-          trigger: featuresRef.current,
-          start: "top 80%",
-        },
-        opacity: 1,
-        y: 50,
-        duration: 0.8,
-        stagger: 0.2,
-        ease: "power3.out",
-      });
-
-      // CTA section animation
-      gsap.from(".cta-content", {
-        scrollTrigger: {
-          trigger: ctaRef.current,
-          start: "top 80%",
-        },
-        opacity: 1,
-        scale: 0.9,
-        duration: 1,
-        ease: "back.out(1.7)",
-      });
-    });
-
-    return () => ctx.revert();
-  }, []);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleGetStarted = async () => {
+    setLoading(true);
     try {
-      // Call backend to get OAuth URL with server-generated state
-      const response = await api.get("/auth/login");
-      const { auth_url, state } = response.data;
-
-      // Store state for validation on callback
-      sessionStorage.setItem("oauth_state", state);
-
-      // Redirect to GitHub OAuth
-      window.location.href = auth_url;
-    } catch (error) {
-      console.error("Failed to initiate OAuth:", error);
-      alert("Failed to start authentication. Please try again.");
+      const { data } = await api.get("/auth/login");
+      sessionStorage.setItem("oauth_state", data.state);
+      window.location.href = data.auth_url;
+    } catch {
+      setLoading(false);
+      setError("Failed to start authentication. Please try again.");
     }
   };
 
-  const features = [
-    {
-      id: "ai-powered",
-      icon: <Sparkles className="w-8 h-8" />,
-      title: "AI-Powered Generation",
-      description:
-        "Leverages Google Gemini Pro to create compelling, personalized README profiles that showcase your best work.",
-      gradient: "from-purple-500 to-pink-500",
-    },
-    {
-      id: "smart-analysis",
-      icon: <Code2 className="w-8 h-8" />,
-      title: "Smart Analysis",
-      description:
-        "Automatically analyzes your repositories, extracting languages, frameworks, and architectural patterns.",
-      gradient: "from-blue-500 to-cyan-500",
-    },
-    {
-      id: "instant-deploy",
-      icon: <Zap className="w-8 h-8" />,
-      title: "Instant Deployment",
-      description:
-        "One-click deployment to your GitHub profile. No manual copying, no hassle—just results.",
-      gradient: "from-orange-500 to-red-500",
-    },
-    {
-      id: "live-preview",
-      icon: <FileText className="w-8 h-8" />,
-      title: "Live Preview",
-      description:
-        "See your profile in real-time as you configure tone, role, and skills emphasis before deploying.",
-      gradient: "from-green-500 to-emerald-500",
-    },
-    {
-      id: "performance",
-      icon: <Rocket className="w-8 h-8" />,
-      title: "Performance Optimized",
-      description:
-        "Built with Go backend and React 19 frontend for blazing-fast performance and seamless UX.",
-      gradient: "from-violet-500 to-purple-500",
-    },
-    {
-      id: "production-ready",
-      icon: <Star className="w-8 h-8" />,
-      title: "Production Ready",
-      description:
-        "Enterprise-grade architecture with PostgreSQL, Redis caching, and OAuth2 security.",
-      gradient: "from-yellow-500 to-orange-500",
-    },
-  ];
-
-  const benefits = [
-    "Generate professional README in under 60 seconds",
-    "Customize tone and style for different roles",
-    "Automatic skill extraction from your code",
-    "Beautiful badges and visual elements",
-    "SEO-optimized markdown formatting",
-    "Secure GitHub OAuth integration",
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white overflow-hidden">
-      {/* Animated background effects */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl float"></div>
-        <div className="absolute top-40 right-20 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl float"></div>
-        <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-pink-500/20 rounded-full blur-3xl float"></div>
+    <div className="min-h-screen bg-[#030712] text-white">
+      {/* Background glows — pure CSS, no JS animation */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-violet-600/8 blur-[120px]" />
+        <div className="absolute top-1/3 -right-32 w-[400px] h-[400px] rounded-full bg-cyan-500/6 blur-[100px]" />
+        <div className="absolute -bottom-32 left-1/3 w-[350px] h-[350px] rounded-full bg-emerald-500/5 blur-[100px]" />
       </div>
 
-      {/* Navigation */}
-      <nav className="relative z-10 container mx-auto px-6 py-6 flex items-center justify-between">
-        <div className="flex items-center space-x-3 group cursor-pointer">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary to-purple-500 blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-            <Github className="relative w-8 h-8 text-white" />
-          </div>
-          <span className="text-2xl font-bold bg-gradient-to-r from-primary via-purple-400 to-pink-400 bg-clip-text text-transparent">
-            GitRight
-          </span>
-        </div>
-        <div className="flex items-center space-x-4">
-          <Link to="/dashboard">
-            <Button
-              variant="ghost"
-              className="text-slate-300 hover:text-white hover:bg-white/10 transition-all duration-300"
-            >
-              Dashboard
-            </Button>
+      {/* Nav */}
+      <header className="relative z-10 border-b border-white/5">
+        <nav className="container mx-auto px-6 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-cyan-500 blur-md opacity-30 group-hover:opacity-50 transition-opacity" />
+              <GitBranch className="relative w-6 h-6 text-white" />
+            </div>
+            <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-violet-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+              GitRight
+            </span>
           </Link>
-          <Button
-            onClick={handleGetStarted}
-            className="relative overflow-hidden bg-gradient-to-r from-primary via-purple-500 to-pink-500 hover:shadow-lg hover:shadow-primary/50 transition-all duration-300 hover:scale-105"
-          >
-            <Github className="w-4 h-4 mr-2" />
-            Get Started
-          </Button>
-        </div>
-      </nav>
+          <div className="flex items-center gap-3">
+            <Link to="/dashboard">
+              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white hover:bg-white/5">
+                Dashboard
+              </Button>
+            </Link>
+            <Button
+              onClick={handleGetStarted}
+              size="sm"
+              disabled={loading}
+              className="bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white font-medium"
+            >
+              {loading ? "Connecting..." : "Get Started"}
+              {!loading && <ArrowRight className="w-3.5 h-3.5 ml-1" />}
+            </Button>
+          </div>
+        </nav>
+      </header>
 
-      {/* Hero Section */}
-      <section
-        ref={heroRef}
-        className="relative z-10 container mx-auto px-6 py-20 md:py-32"
-      >
-        <div className="max-w-5xl mx-auto text-center space-y-8">
-          <Badge className="hero-title bg-gradient-to-r from-primary/20 to-purple-500/20 text-primary border-primary/40 px-5 py-2 backdrop-blur-sm shadow-lg shadow-primary/10">
-            <Sparkles className="w-4 h-4 mr-2 inline animate-pulse" />
+      {error && (
+        <div className="fixed top-4 right-4 z-50 px-4 py-3 rounded-lg text-sm font-medium bg-red-600 text-white shadow-lg">
+          {error}
+        </div>
+      )}
+
+      {/* Hero */}
+      <section className="relative z-10 container mx-auto px-6 pt-24 pb-20 md:pt-36 md:pb-28">
+        <div className="max-w-4xl mx-auto text-center">
+          <Badge className="mb-6 bg-violet-500/10 text-violet-400 border-violet-500/20 px-3 py-1 text-xs font-medium">
+            <Sparkles className="w-3 h-3 mr-1.5 inline" />
             AI-Powered Profile Generation
           </Badge>
 
-          <h1 className="hero-title text-5xl md:text-7xl font-extrabold leading-tight">
-            Transform Your GitHub Profile
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1]">
+            Your GitHub Profile,
             <br />
-            <span className="bg-gradient-to-r from-primary via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              In Seconds
+            <span className="bg-gradient-to-r from-violet-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+              Automated
             </span>
           </h1>
 
-          <p className="hero-subtitle text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto">
-            GitRight uses advanced AI to analyze your repositories and generate
-            stunning, professional README profiles that make you stand out.
+          <p className="mt-6 text-base md:text-lg text-gray-400 max-w-xl mx-auto leading-relaxed">
+            Analyze your repositories, extract your skills, and generate a
+            professional README — all in one click. BYOK, open source.
           </p>
 
-          <div className="hero-buttons flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <Button
               onClick={handleGetStarted}
-              size="lg"
-              className="bg-gradient-to-r from-primary to-purple-500 hover:opacity-90 text-lg px-8 py-6"
+              disabled={loading}
+              className="bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white font-medium px-8 py-6 text-base"
             >
-              <Github className="w-5 h-5 mr-2" />
+              <GitBranch className="w-5 h-5 mr-2" />
               Create Your Profile
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className=" from-primary to-purple-500 bg-gradient-to-r border-slate-700  hover: text-white bg-inherit-800 text-lg px-8 py-6"
-            >
-              Watch Demo
-            </Button>
+            <a href="https://github.com/krauzX/gitright" target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" className="border-white/10 hover:bg-white/5 px-8 py-6 text-base">
+                <Star className="w-5 h-5 mr-2" />
+                Star on GitHub
+              </Button>
+            </a>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-8 pt-8 text-sm text-slate-400">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-400" />
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-gray-500">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
               Free & Open Source
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-400" />
-              No Credit Card
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-400" />
-              60s Setup
-            </div>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+              BYOK — Your Key
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+              Deploy in 60s
+            </span>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section
-        ref={featuresRef}
-        className="relative z-10 container mx-auto px-6 py-20"
-      >
-        <div className="max-w-6xl mx-auto space-y-12">
-          <div className="text-center space-y-4">
-            <h2 className="text-4xl md:text-5xl font-bold">
-              Powerful Features for
-              <span className="bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
-                {" "}
+      {/* Features */}
+      <section className="relative z-10 container mx-auto px-6 py-16 md:py-24">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+              Built for{" "}
+              <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
                 Developers
               </span>
             </h2>
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-              Everything you need to create an impressive GitHub profile that
-              attracts recruiters and collaborators.
+            <p className="mt-3 text-gray-400 max-w-lg mx-auto">
+              Every feature designed to showcase your actual work, not generic templates.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {features.map((f, i) => (
               <Card
-                key={feature.id}
-                className="feature-card group relative text-white  bg-neutral-950/80 border border-slate-800 hover:border-fuchsia-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/30 backdrop-blur-md p-6 space-y-4 overflow-hidden"
+                key={i}
+                className="group bg-white/[0.02] border-white/[0.06] hover:border-white/[0.12] transition-all duration-200 p-5"
               >
-                {/* Gradient Overlay for Purple Light Source */}
-                <div
-                  className="absolute inset-0 bg-gradient-to-tr from-fuchsia-900/10 to-transparent 
-    group-hover:from-fuchsia-800/20 group-hover:to-transparent 
-    transition-opacity duration-300"
-                ></div>
-
-                <div className="relative">
-                  <div
-                    // Bright Purple Icon
-                    className={`w-16 h-16 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-violet-400 
-      flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
-                  >
-                    {feature.icon}
-                  </div>
-                  <h3
-                    // Title Brightens to match the aura
-                    className="text-xl font-semibold mt-4 group-hover:text-fuchsia-400 transition-colors duration-300"
-                  >
-                    {feature.title}
-                  </h3>
-                  <p
-                    // Text color adjusted for better visibility on near-black
-                    className="text-slate-400 group-hover:text-slate-200 transition-colors duration-300"
-                  >
-                    {feature.description}
-                  </p>
+                <div className={`w-10 h-10 rounded-lg ${f.bg} flex items-center justify-center mb-3 ${f.color} group-hover:scale-110 transition-transform duration-200`}>
+                  {f.icon}
                 </div>
+                <h3 className="text-sm font-semibold text-white/90 mb-1.5">{f.title}</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">{f.desc}</p>
               </Card>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Benefits Section */}
-      <section className="relative z-10 container mx-auto px-6 py-20">
+      {/* How It Works */}
+      <section className="relative z-10 container mx-auto px-6 py-16 md:py-24">
         <div className="max-w-4xl mx-auto">
-          <Card className="relative overflow-hidden bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 border-slate-700/50 backdrop-blur-xl p-8 md:p-12 shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5"></div>
-            <div className="relative">
-              <h2 className="text-3xl md:text-4xl font-bold mb-8 text-center bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-                Why Choose GitRight?
-              </h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                {benefits.map((benefit) => (
-                  <div
-                    key={benefit}
-                    className="flex items-start gap-3 group hover:translate-x-2 transition-transform duration-300"
-                  >
-                    <CheckCircle2 className="w-6 h-6 text-green-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform duration-300" />
-                    <span className="text-slate-300 group-hover:text-white transition-colors duration-300">
-                      {benefit}
-                    </span>
-                  </div>
-                ))}
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+              How It{" "}
+              <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+                Works
+              </span>
+            </h2>
+            <p className="mt-3 text-gray-400">Five steps to a professional profile</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-6">
+            {steps.map((s, i) => (
+              <div key={i} className="text-center">
+                <div className="w-11 h-11 mx-auto rounded-full bg-gradient-to-br from-violet-500/20 to-cyan-500/20 border border-white/10 flex items-center justify-center mb-3">
+                  <span className="text-xs font-bold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+                    {s.num}
+                  </span>
+                </div>
+                <p className="text-sm font-semibold text-white/90">{s.title}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{s.desc}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="relative z-10 container mx-auto px-6 py-16 md:py-24 pb-24">
+        <div className="max-w-2xl mx-auto">
+          <Card className="relative overflow-hidden bg-white/[0.02] border-white/[0.06] p-10 text-center">
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-cyan-500/5 pointer-events-none" />
+            <div className="relative">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center mb-5">
+                <Rocket className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">
+                Ready to Stand Out?
+              </h2>
+              <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                Join developers who use GitRight to create compelling profiles
+                that attract recruiters and collaborators.
+              </p>
+              <Button
+                onClick={handleGetStarted}
+                disabled={loading}
+                className="bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 font-medium px-8 py-6 text-base"
+              >
+                <GitBranch className="w-5 h-5 mr-2" />
+                Get Started Free
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
             </div>
           </Card>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section
-        ref={ctaRef}
-        className="relative z-10 container mx-auto px-6 py-20 pb-32"
-      >
-        <div className="cta-content max-w-4xl mx-auto text-center space-y-8">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-purple-500/30 to-pink-500/30 blur-3xl animate-pulse"></div>
-            <Card className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-primary/30 p-12 shadow-2xl shadow-primary/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-purple-500/10"></div>
-              <div className="relative">
-                <div className="inline-block mb-4">
-                  <Rocket className="w-16 h-16 text-primary animate-bounce" />
-                </div>
-                <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
-                  Ready to Stand Out?
-                </h2>
-                <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto leading-relaxed">
-                  Join thousands of developers who have transformed their GitHub
-                  profiles with GitRight. Start building your professional
-                  presence today.
-                </p>
-                <Button
-                  onClick={handleGetStarted}
-                  size="lg"
-                  className="group relative overflow-hidden bg-gradient-to-r from-primary via-purple-500 to-pink-500 hover:shadow-2xl hover:shadow-primary/50 transition-all duration-500 text-lg px-12 py-7 hover:scale-110"
-                >
-                  <span className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-500 to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500"></span>
-                  <span className="relative flex items-center">
-                    <Github className="w-5 h-5 mr-2" />
-                    Create Your Profile Now
-                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform duration-300" />
-                  </span>
-                </Button>
-              </div>
-            </Card>
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
-      <footer className="relative z-10 border-t border-slate-800/50 bg-slate-950/50 backdrop-blur-sm py-8">
-        <div className="container mx-auto px-6 text-center text-slate-400">
-          <p className="text-base">
-            Built with <span className="text-red-400 animate-pulse">❤️</span>{" "}
-            using Go, React 19, PostgreSQL, and Google Gemini
-          </p>
-          <p className="mt-2 text-sm text-slate-500">
-            © 2025 GitRight. Open Source under MIT License.
+      <footer className="relative z-10 border-t border-white/5 py-6">
+        <div className="container mx-auto px-6 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 gap-2">
+          <p>Built with Go, React, PostgreSQL & Gemini</p>
+          <p>
+            MIT License ·{" "}
+            <a href="https://github.com/krauzX/gitright" className="text-gray-400 hover:text-white transition-colors">
+              GitHub
+            </a>
           </p>
         </div>
       </footer>

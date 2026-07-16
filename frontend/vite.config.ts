@@ -1,13 +1,13 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  plugins: [react()],
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -23,8 +23,7 @@ export default defineConfig(({ mode }) => ({
     port: 3000,
     proxy: {
       "/api": {
-        // In development, proxy API calls to backend
-        target: "http://localhost:5173",
+        target: "http://localhost:8080",
         changeOrigin: true,
       },
     },
@@ -32,14 +31,23 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          "react-vendor": ["react", "react-dom", "react-router-dom"],
-          "ui-vendor": ["framer-motion", "lucide-react"],
-          "markdown-vendor": [
-            "react-markdown",
-            "remark-gfm",
-            "rehype-highlight",
-          ],
+        manualChunks(id) {
+          if (id.includes("node_modules/react-dom") || id.includes("node_modules/react/")) {
+            return "react-vendor";
+          }
+          if (
+            id.includes("node_modules/framer-motion") ||
+            id.includes("node_modules/lucide-react")
+          ) {
+            return "ui-vendor";
+          }
+          if (
+            id.includes("node_modules/react-markdown") ||
+            id.includes("node_modules/remark-gfm") ||
+            id.includes("node_modules/rehype-highlight")
+          ) {
+            return "markdown-vendor";
+          }
         },
       },
     },
@@ -50,4 +58,4 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     include: ["react", "react-dom", "react-router-dom"],
   },
-}));
+});
