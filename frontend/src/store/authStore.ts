@@ -1,17 +1,18 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { api } from "../lib/api";
 import type { User, AuthState } from "../types";
 
 interface AuthStore extends AuthState {
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
   setIsLoading: (isLoading: boolean) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
       isAuthenticated: false,
@@ -27,12 +28,18 @@ export const useAuthStore = create<AuthStore>()(
 
       setIsLoading: (isLoading) => set({ isLoading }),
 
-      logout: () =>
+      logout: async () => {
+        try {
+          await api.post("/auth/logout");
+        } catch {
+          // Logout even if backend call fails
+        }
         set({
           user: null,
           token: null,
           isAuthenticated: false,
-        }),
+        });
+      },
     }),
     {
       name: "gitright-auth",

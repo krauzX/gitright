@@ -64,6 +64,9 @@ func AuthMiddleware(secret string, userRepo *repository.UserRepository, sessionR
 			c.Set("user_id", claims.UserID)
 			c.Set("username", claims.Username)
 			c.Set("jwt_jti", claims.JTI)
+			if claims.ExpiresAt != nil {
+				c.Set("jwt_exp", claims.ExpiresAt.Unix())
+			}
 
 			return next(c)
 		}
