@@ -81,7 +81,7 @@ func (s *ProfileService) GenerateProfile(ctx context.Context, req *models.Conten
 
 	badges := s.buildBadgesFromProjectData(req.Projects, batchResp.ExtractedSkills, req.EmphasizedSkills)
 
-	markdown := s.buildMarkdown(user, req, batchResp.ProfilePitch, summaries, badges, config, false)
+	markdown := s.buildMarkdown(user, req, batchResp.ProfilePitch, summaries, badges, config)
 
 	response := &models.ContentGenerationResponse{
 		Markdown:        markdown,
@@ -440,7 +440,6 @@ func (s *ProfileService) buildMarkdown(
 	summaries []models.ProjectSummary,
 	badges []models.Badge,
 	config *models.ProfileConfig,
-	hasBanner bool,
 ) string {
 	var md strings.Builder
 

@@ -93,6 +93,21 @@ func drawLeftPanel(c *Canvas, data *BannerData, t *Theme) {
 		`font-family="'Courier New', Consolas, monospace"`,
 		`font-size="11"`, `fill="#38BDF8"`, `letter-spacing="2"`, `opacity="0.7"`)
 
+	ascii := generateASCIIArt(data.Login)
+	lines := strings.Split(ascii, "\n")
+	startY := 50
+
+	for i, line := range lines {
+		if line == "" {
+			continue
+		}
+		y := startY + i*12
+		c.SVG.Text(30, y, line,
+			`font-family="'Courier New', Consolas, monospace"`,
+			`font-size="9"`, `fill="url(#asciiGrad)"`,
+			`letter-spacing="-0.2"`, `xml:space="preserve"`)
+	}
+
 	c.SVG.Gend()
 }
 
@@ -111,8 +126,12 @@ func drawRightPanel(c *Canvas, data *BannerData, t *Theme) {
 	for i, line := range lines {
 		y := 42 + i*22
 		clipID := fmt.Sprintf("lc%d", i)
+		begin := fmt.Sprintf("%.2fs", 0.75+float64(i)*0.11)
+
 		c.SVG.ClipPath(clipID)
 		c.SVG.Rect(500, y-18, 0, 24, fmt.Sprintf(`id="%s"`, clipID))
+		c.SVG.Animate(fmt.Sprintf("#%s", clipID), "width", 0, 690, 0.38, 0,
+			fmt.Sprintf(`begin="%s"`, begin), `fill="freeze"`)
 		c.SVG.DefEnd()
 
 		c.SVG.Group(fmt.Sprintf(`clip-path="url(#%s)"`, clipID))
@@ -242,4 +261,18 @@ func truncateStr(s string, max int) string {
 		return s
 	}
 	return s[:max-3] + "..."
+}
+
+func generateASCIIArt(login string) string {
+	name := strings.ToUpper(login)
+	if len(name) > 12 {
+		name = name[:12]
+	}
+
+	return `  ████████╗██╗  ██╗███████╗
+  ╚══██╔══╝██║  ██║██╔════╝
+     ██║   ███████║█████╗  
+     ██║   ██╔══██║██╔══╝  
+     ██║   ██║  ██║███████╗
+     ╚═╝   ╚═╝  ╚═╝╚══════╝`
 }
